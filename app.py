@@ -94,11 +94,19 @@ def index():
         # Test database connection
         test_connection = get_db_connection()
         test_connection.close()
+        print("Database connection successful", flush=True)
+        
+        # Try to render template
         return render_template("layout.html")
     except Exception as e:
-        print(f"Database error in index route: {e}", flush=True)
-        # For production debugging - remove this later
-        return f"Database connection error: {str(e)}", 500
+        print(f"Error in index route: {e}", flush=True)
+        print(f"Error type: {type(e).__name__}", flush=True)
+        
+        # Check if it's a template error
+        if "layout.html" in str(e) or "TemplateNotFound" in str(e):
+            return f"Template error: Missing layout.html template file. Error: {str(e)}", 500
+        else:
+            return f"Database connection error: {str(e)}", 500
 
 
 @app.route("/portafolio", methods=["GET", "POST"])
