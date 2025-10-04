@@ -17,7 +17,11 @@ DATABASE = "inventory.db"
 
 def get_db_connection():
     """Get a database connection with row factory for dict-like access"""
-    conn = sqlite3.connect(DATABASE)
+    # Use absolute path for production
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), DATABASE)
+    print(f"Attempting to connect to database at: {db_path}", flush=True)
+    print(f"Database file exists: {os.path.exists(db_path)}", flush=True)
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -86,7 +90,15 @@ def after_request(response):
 
 @app.route("/")
 def index():
-    return render_template("layout.html")
+    try:
+        # Test database connection
+        test_connection = get_db_connection()
+        test_connection.close()
+        return render_template("layout.html")
+    except Exception as e:
+        print(f"Database error in index route: {e}", flush=True)
+        # For production debugging - remove this later
+        return f"Database connection error: {str(e)}", 500
 
 
 @app.route("/portafolio", methods=["GET", "POST"])
@@ -999,6 +1011,23 @@ def results():
         sku_list=sku_list,
         calendar_matrix=calendar_matrix
     )
+
+@app.route("/debug")
+def debug_info():
+    """Debug route to check environment"""
+    try:
+        import os
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), DATABASE)
+        return f"""
+        <h1>Debug Info</h1>
+        <p>Current working directory: {os.getcwd()}</p>
+        <p>App file location: {os.path.abspath(__file__)}</p>
+        <p>Database path: {db_path}</p>
+        <p>Database exists: {os.path.exists(db_path)}</p>
+        <p>Directory contents: {os.listdir(os.path.dirname(os.path.abspath(__file__)))}</p>
+        """
+    except Exception as e:
+        return f"Debug error: {str(e)}", 500
 
 if __name__ == "__main__":
     # For development
